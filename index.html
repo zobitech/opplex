@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sports TV Live</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #0a0a0a; color: #fff; }
+    header { background: #101820; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; color: #00ff88; letter-spacing: 2px; }
+    .player { width: 100%; height: 70vh; border: none; background: #000; display: block; }
+    .info-line { text-align: center; padding: 10px; background: #151515; font-size: 16px; color: #00ff88; font-weight: bold; }
+    .controls { display: flex; justify-content: center; align-items: center; padding: 10px; background: #151515; }
+    select { padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; background: #1a1a1a; color: #fff; cursor: pointer; }
+    .container { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; padding: 15px; }
+    .channel-card { background: #1a1a1a; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+    .channel-card:hover { transform: scale(1.05); box-shadow: 0px 4px 15px rgba(0, 255, 136, 0.5); }
+    .channel-card img { width: 100%; height: 90px; object-fit: contain; margin-bottom: 8px; }
+    .channel-card span { display: block; font-size: 14px; font-weight: bold; color: #eee; margin-bottom: 4px; }
+    .channel-card small { font-size: 12px; color: #aaa; }
+  </style>
+</head>
+<body>
+  <header>⚽ Sports TV Live</header>
+
+  <!-- Player at the top -->
+  <iframe id="player" class="player" allowfullscreen></iframe>
+
+  <!-- Info Line -->
+  <div class="info-line">📺 Click a channel below to play</div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <label for="genreSelect" style="margin-right:8px;">Category:</label>
+    <select id="genreSelect">
+      <option value="all">All</option>
+    </select>
+  </div>
+
+  <!-- Channel grid -->
+  <div id="channels" class="container"></div>
+
+  <script>
+    let allChannels = [];
+
+    async function loadChannels() {
+      try {
+        const response = await fetch('https://m3u8-rust-three.vercel.app/opplex.txt');
+        const text = await response.text();
+
+        const cleanText = text.trim()
+          .replace(/,\s*]/, "]")
+          .replace(/,\s*}/, "}");
+
+        allChannels = JSON.parse(cleanText);
+        populateGenres(allChannels);
+        renderChannels(allChannels);
+      } catch (err) {
+        console.error('Error loading channels:', err);
+        document.getElementById('channels').innerHTML =
+          `<p style="color:red;text-align:center;">❌ Failed to load channels</p>`;
+      }
+    }
+
+    function populateGenres(data) {
+      const genreSelect = document.getElementById('genreSelect');
+      const genres = [...new Set(data.map(ch => ch.genre || 'Other'))];
+      genres.forEach(g => {
+        const option = document.createElement('option');
+        option.value = g;
+        option.textContent = g;
+        genreSelect.appendChild(option);
+      });
+
+      genreSelect.addEventListener('change', () => {
+        const selected = genreSelect.value;
+        if (selected === 'all') {
+          renderChannels(allChannels);
+        } else {
+          renderChannels(allChannels.filter(ch => ch.genre === selected));
+        }
+      });
+    }
+
+    function renderChannels(channels) {
+      const container = document.getElementById('channels');
+      container.innerHTML = '';
+
+      channels.forEach(item => {
+        if (!item.id || !item.name) return;
+
+        const card = document.createElement('div');
+        card.className = 'channel-card';
+
+        card.innerHTML = `
+          <img src="${item.logo || 'https://via.placeholder.com/150?text=No+Logo'}" alt="${item.name}">
+          <span>${item.name}</span>
+          <small>${item.genre || 'SPORTS'}</small>
+        `;
+
+        card.addEventListener('click', () => {
+          document.getElementById('player').src =
+            `https://zobitech.github.io/p2?url=https://allinonereborn.fun/opplextv-web1/live.php?id=${encodeURIComponent(item.id)}`;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    loadChannels();
+  </script>
+</body>
+</html>
