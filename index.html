@@ -3,38 +3,118 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sports TV Live</title>
+  <title>Zobi TV Live</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #0a0a0a; color: #fff; }
-    header { background: #101820; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; color: #00ff88; letter-spacing: 2px; }
-    .player { width: 100%; height: 70vh; border: none; background: #000; display: block; }
-    .info-line { text-align: center; padding: 10px; background: #151515; font-size: 16px; color: #00ff88; font-weight: bold; }
-    .controls { display: flex; justify-content: center; align-items: center; padding: 10px; background: #151515; }
-    select { padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px; background: #1a1a1a; color: #fff; cursor: pointer; }
-    .channel-list { list-style: none; padding: 0; margin: 0; }
-    .channel-item { background: #1a1a1a; margin: 6px 12px; padding: 14px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.2s, color 0.2s; }
-    .channel-item:hover { background: #00ff88; color: #000; }
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      margin: 0; 
+      background: linear-gradient(135deg, #0a0a0a, #101820); 
+      color: #fff; 
+    }
+    header { 
+      background: rgba(16, 24, 32, 0.8); 
+      backdrop-filter: blur(10px);
+      padding: 18px; 
+      text-align: center; 
+      font-size: 26px; 
+      font-weight: bold; 
+      color: #00ff88; 
+      letter-spacing: 2px; 
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    }
+    .player { 
+      width: 95%; 
+      height: 60vh; 
+      border: none; 
+      background: #000; 
+      display: block; 
+      margin: 15px auto;
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+    }
+    .info-line { 
+      text-align: center; 
+      padding: 12px; 
+      background: rgba(21, 21, 21, 0.9); 
+      font-size: 16px; 
+      color: #00ff88; 
+      font-weight: bold; 
+      border-top: 1px solid rgba(0,255,136,0.2);
+      border-bottom: 1px solid rgba(0,255,136,0.2);
+    }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+      padding: 20px;
+    }
+    .category-card {
+      background: rgba(26, 26, 26, 0.85);
+      border-radius: 14px;
+      padding: 18px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(0, 255, 136, 0.2);
+    }
+    .category-card:hover {
+      background: rgba(0, 255, 136, 0.15);
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 8px 20px rgba(0, 255, 136, 0.4);
+    }
+    .category-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 0;
+      text-align: center;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .channels {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: all 0.4s ease;
+    }
+    .expanded .channels {
+      max-height: 600px; /* enough for many channels */
+      opacity: 1;
+    }
+    .channel-item {
+      background: rgba(37, 37, 37, 0.9);
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .channel-item:hover {
+      background: #00ff88;
+      color: #000;
+      transform: scale(1.05);
+      box-shadow: 0 6px 15px rgba(0, 255, 136, 0.5);
+    }
   </style>
 </head>
 <body>
-  <header>⚽ Sports TV Live</header>
+  <header>📺 Zobi TV Live</header>
 
   <!-- Player at the top -->
   <iframe id="player" class="player" allowfullscreen></iframe>
 
   <!-- Info Line -->
-  <div class="info-line">📺 Click a channel below to play</div>
+  <div class="info-line">📺 Select a category below and pick a channel</div>
 
-  <!-- Controls -->
-  <div class="controls">
-    <label for="genreSelect" style="margin-right:8px;">Category:</label>
-    <select id="genreSelect">
-      <option value="all">All</option>
-    </select>
-  </div>
-
-  <!-- Channel List -->
-  <ul id="channels" class="channel-list"></ul>
+  <!-- Categories Grid -->
+  <div id="categories" class="category-grid"></div>
 
   <script>
     let allChannels = [];
@@ -49,53 +129,59 @@
           .replace(/,\s*}/, "}");
 
         allChannels = JSON.parse(cleanText);
-        populateGenres(allChannels);
-        renderChannels(allChannels);
+        renderCategories(allChannels);
       } catch (err) {
         console.error('Error loading channels:', err);
-        document.getElementById('channels').innerHTML =
+        document.getElementById('categories').innerHTML =
           `<p style="color:red;text-align:center;">❌ Failed to load channels</p>`;
       }
     }
 
-    function populateGenres(data) {
-      const genreSelect = document.getElementById('genreSelect');
-      const genres = [...new Set(data.map(ch => ch.genre || 'Other'))];
-      genres.forEach(g => {
-        const option = document.createElement('option');
-        option.value = g;
-        option.textContent = g;
-        genreSelect.appendChild(option);
-      });
-
-      genreSelect.addEventListener('change', () => {
-        const selected = genreSelect.value;
-        if (selected === 'all') {
-          renderChannels(allChannels);
-        } else {
-          renderChannels(allChannels.filter(ch => ch.genre === selected));
-        }
-      });
-    }
-
-    function renderChannels(channels) {
-      const container = document.getElementById('channels');
+    function renderCategories(data) {
+      const container = document.getElementById('categories');
       container.innerHTML = '';
 
-      channels.forEach(item => {
-        if (!item.id || !item.name) return;
+      // group by genre
+      const grouped = {};
+      data.forEach(ch => {
+        const g = ch.genre || 'Other';
+        if (!grouped[g]) grouped[g] = [];
+        grouped[g].push(ch);
+      });
 
-        const li = document.createElement('li');
-        li.className = 'channel-item';
-        li.textContent = item.name;
+      Object.keys(grouped).forEach(genre => {
+        const card = document.createElement('div');
+        card.className = 'category-card';
 
-        li.addEventListener('click', () => {
-          document.getElementById('player').src =
-            `https://zobitvv.github.io/p3?url=https://allinonereborn.fun/opplextv-web1/live.php?id=${encodeURIComponent(item.id)}`;
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+        const title = document.createElement('h3');
+        title.className = 'category-title';
+        title.textContent = genre;
+
+        const channelsDiv = document.createElement('div');
+        channelsDiv.className = 'channels';
+
+        grouped[genre].forEach(item => {
+          if (!item.id || !item.name) return;
+          const chEl = document.createElement('div');
+          chEl.className = 'channel-item';
+          chEl.textContent = item.name;
+          chEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('player').src =
+              `https://zobitvv.github.io/p3?url=https://allinonereborn.fun/opplextv-web1/live.php?id=${encodeURIComponent(item.id)}`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+          channelsDiv.appendChild(chEl);
         });
 
-        container.appendChild(li);
+        card.appendChild(title);
+        card.appendChild(channelsDiv);
+
+        card.addEventListener('click', () => {
+          card.classList.toggle('expanded');
+        });
+
+        container.appendChild(card);
       });
     }
 
